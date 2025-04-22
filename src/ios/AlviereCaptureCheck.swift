@@ -4,7 +4,6 @@
 //
 //  Created by Luis Bouça on 31/05/2022.
 //  Refactored by André Grillo on 23/01/2023
-//  Refactored by André Grillo on 22/04/2025
 
 import Foundation
 import AlCore
@@ -47,7 +46,8 @@ class AlviereCaptureCheck: CDVPlugin {
     func captureDossier(command: CDVInvokedUrlCommand) {
         guard let arguments = command.arguments.first as? [String: Any],
               let accountUUID = arguments["accountUUID"] as? String,
-              let docTypes = arguments["docTypes"] as? [String] else {
+              let docTypes = arguments["docTypes"] as? [String],
+              let token = arguments["token"] as? String else {
             sendPluginResult(status: .error, message: "Missing or invalid arguments", callbackType: .dossier)
             return
         }
@@ -80,6 +80,7 @@ class AlviereCaptureCheck: CDVPlugin {
                 )
 
                 let uploadView = await AlAccounts.userInterface.createDossierUploadView(
+                    token: token,
                     cameraToken: cameraToken,
                     documentTypes: documentTypes,
                     data: uploadRequest,
@@ -134,24 +135,31 @@ class AlviereCaptureCheck: CDVPlugin {
             do {
                 let cameraToken = try await AlCoreSDK.shared.getCameraToken(accountUUID: accountUUID)
 
-                var config = ALCameraConfiguration.checkFront
-                // Optionally customize config if needed
+                let config = await ALCameraConfiguration.checkFront
 
-                let captureView = await AlPayments.userInterface.createCaptureDocumentView(
+                let captureView = await AlPayments.userInterface.createCaptureCheckView(
                     cameraToken: cameraToken,
                     cameraConfig: config,
                     overlay: nil
                 ) { result in
                     switch result {
                     case .success(let checkData):
-                        if let jsonData = try? JSONEncoder().encode(checkData),
+                        let resultDict: [String: Any] = [
+                            "barcode": checkData.barcode,
+                            "image": checkData.image
+                        ]
+                        if let jsonData = try? JSONSerialization.data(withJSONObject: resultDict, options: []),
                            let jsonString = String(data: jsonData, encoding: .utf8) {
                             self.sendPluginResult(status: .ok, message: jsonString, callbackType: .check)
                         } else {
-                            self.sendPluginResult(status: .error, message: "Failed to encode result", callbackType: .check)
+                            self.sendPluginResult(status: .error, message: "Failed to serialize check data", callbackType: .check)
                         }
+
                     case .failure(let error):
                         self.sendPluginResult(status: .error, message: "Error: \(error.localizedDescription)", callbackType: .check)
+
+                    @unknown default:
+                        self.sendPluginResult(status: .error, message: "Unknown result state", callbackType: .check)
                     }
                 }
 

@@ -4,10 +4,11 @@ exports.captureCheck = function (accountUUID, success, error) {
     exec(success, error, 'AlviereCaptureCheck', 'captureCheck', [accountUUID]);
 };
 
-exports.captureDossier = function (accountUUID, docTypes, success, error) {
+exports.captureDossier = function (accountUUID, docTypes, token, success, error) {
     const payload = {
         accountUUID: accountUUID,
-        docTypes: docTypes
+        docTypes: docTypes,
+        token: token
     };
     exec(success, error, 'AlviereCaptureCheck', 'captureDossier', [payload]);
 };
