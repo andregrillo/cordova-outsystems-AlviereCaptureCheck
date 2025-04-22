@@ -7,7 +7,7 @@
 
 import Foundation
 import AlCore
-import Payments
+import PaymentsSDK
 import AccountsSDK
 import AVFoundation
 import UIKit
