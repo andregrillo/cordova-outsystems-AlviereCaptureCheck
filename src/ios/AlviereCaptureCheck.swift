@@ -4,6 +4,7 @@
 //
 //  Created by Luis Bouça on 31/05/2022.
 //  Refactored by André Grillo on 23/01/2023
+//  Refactored by André Grillo on 22/04/2025
 
 import Foundation
 import AlCore
