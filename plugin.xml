@@ -17,10 +17,10 @@
 
         <podspec>
             <pods use-frameworks="true">
-                <pod name="AlCore" podspec="https://raw.githubusercontent.com/andregrillo/cordova-outsystems-AlviereCaptureCheck/alviere_podspecs_fixed/src/ios/podspec/AlCore.podspec" />
-                <pod name="AlCamera" podspec="https://raw.githubusercontent.com/andregrillo/cordova-outsystems-AlviereCaptureCheck/alviere_podspecs_fixed/src/ios/podspec/AlCamera.podspec" />
-                <pod name="Payments" podspec="https://raw.githubusercontent.com/andregrillo/cordova-outsystems-AlviereCaptureCheck/alviere_podspecs_fixed/src/ios/podspec/Payments.podspec" />
-                <pod name="AccountsSDK" podspec="https://raw.githubusercontent.com/andregrillo/cordova-outsystems-AlviereCaptureCheck/alviere_podspecs_fixed/src/ios/podspec/AccountsSDK.podspec" />
+                <pod name="AlCore" podspec="https://raw.githubusercontent.com/andregrillo/cordova-outsystems-AlviereCaptureCheck/refs/heads/privacy_manifest_iOS/src/ios/podspec/AlCore.podspec" />
+                <pod name="AlCamera" podspec="https://raw.githubusercontent.com/andregrillo/cordova-outsystems-AlviereCaptureCheck/refs/heads/privacy_manifest_iOS/src/ios/podspec/AlCamera.podspec" />
+                <pod name="Payments" podspec="https://raw.githubusercontent.com/andregrillo/cordova-outsystems-AlviereCaptureCheck/refs/heads/privacy_manifest_iOS/src/ios/podspec/Payments.podspec" />
+                <pod name="AccountsSDK" podspec="https://raw.githubusercontent.com/andregrillo/cordova-outsystems-AlviereCaptureCheck/refs/heads/privacy_manifest_iOS/src/ios/podspec/AccountsSDK.podspec" />
             </pods>
         </podspec>
         
