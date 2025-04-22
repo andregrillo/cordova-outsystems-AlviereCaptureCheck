@@ -43,7 +43,6 @@
 
         <hook type="after_prepare" src="hooks/ios/changeInLineMediaPlayback.js" />
         <hook type="before_plugin_install" src="hooks/ios/add_swift_support.js" />
-        <hook type="after_plugin_install" src="hooks/ios/changeAppDelegate.js" />
         <hook type="after_prepare" src="hooks/ios/localizationAdder.js" />
 
     </platform>

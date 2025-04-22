@@ -1,11 +1,15 @@
 var exec = require('cordova/exec');
 
-exports.captureCheck = function (success, error) {
-    exec(success, error, 'AlviereCaptureCheck', 'captureCheck', []);
+exports.captureCheck = function (accountUUID, success, error) {
+    exec(success, error, 'AlviereCaptureCheck', 'captureCheck', [accountUUID]);
 };
 
-exports.captureDossier = function (docList,success, error) {
-    exec(success, error, 'AlviereCaptureCheck', 'captureDossier', [docList]);
+exports.captureDossier = function (accountUUID, docTypes, success, error) {
+    const payload = {
+        accountUUID: accountUUID,
+        docTypes: docTypes
+    };
+    exec(success, error, 'AlviereCaptureCheck', 'captureDossier', [payload]);
 };
 
 exports.requestPermission = function (success, error) {
