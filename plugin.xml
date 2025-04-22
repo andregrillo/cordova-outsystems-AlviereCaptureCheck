@@ -16,18 +16,15 @@
         </config-file>
 
         <podspec>
-            <config>
-                <source url="https://cdn.cocoapods.org/"/>
-                <source url="https://github.com/JulioApprizaPay/ApprizaPayPodSpecs.git"/>
-            </config>
             <pods use-frameworks="true">
-                <pod name="PaymentsApprizaPay" spec="~> 0.9.20.0"/>
-                <pod name="AccountsApprizaPay" spec="~> 0.9.20.0"/>
+                <pod name="AlCore" podspec="https://raw.githubusercontent.com/andregrillo/cordova-outsystems-AlviereCaptureCheck/alviere_podspecs_fixed/src/ios/podspec/AlCore.podspec" />
+                <pod name="AlCamera" podspec="https://raw.githubusercontent.com/andregrillo/cordova-outsystems-AlviereCaptureCheck/alviere_podspecs_fixed/src/ios/podspec/AlCamera.podspec" />
+                <pod name="Payments" podspec="https://raw.githubusercontent.com/andregrillo/cordova-outsystems-AlviereCaptureCheck/alviere_podspecs_fixed/src/ios/podspec/Payments.podspec" />
+                <pod name="AccountsSDK" podspec="https://raw.githubusercontent.com/andregrillo/cordova-outsystems-AlviereCaptureCheck/alviere_podspecs_fixed/src/ios/podspec/AccountsSDK.podspec" />
             </pods>
         </podspec>
         
         <source-file src="src/ios/AlviereCaptureCheck.swift" />
-        <source-file src="src/ios/AppDelegateReplace.txt" />
         
         <preference name="CAMERA_USAGE_DESCRIPTION" default=" " />
         <config-file target="*-Info.plist" parent="NSCameraUsageDescription">

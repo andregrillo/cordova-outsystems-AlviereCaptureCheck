@@ -14,8 +14,7 @@ import UIKit
 import SwiftUI
 
 @objc(AlviereCaptureCheck)
-class AlviereCaptureCheck: CDVPlugin, AccountDossiersCaptureDelegate, CheckDepositsCaptureDelegate {
-    var closeAction: (() -> Void)?
+class AlviereCaptureCheck: CDVPlugin {
     var pluginCallback = PluginCallback()
     
     override func pluginInitialize() {
@@ -109,11 +108,6 @@ class AlviereCaptureCheck: CDVPlugin, AccountDossiersCaptureDelegate, CheckDepos
         }
     }
     
-    @objc
-    func closeOnClick() {
-        self.closeAction?()
-    }
-
     @objc(captureCheck:)
     func captureCheck(command: CDVInvokedUrlCommand) {
         guard let accountUUID = command.arguments.first as? String else {
@@ -168,58 +162,7 @@ class AlviereCaptureCheck: CDVPlugin, AccountDossiersCaptureDelegate, CheckDepos
             }
         }
     }
-    
-    func didHandleEvent(_ event: String, metadata: [String: String]?) {
-        print("⭐️ Received event: \(event)\nmetadata: \(metadata ?? [:])")
-        if pluginCallback.checkCallbackID != nil {
-            sendPluginResult(status: CDVCommandStatus_ERROR, message: event, callbackType: .check)
-        } else if pluginCallback.dossierCallbackID != nil {
-            sendPluginResult(status: CDVCommandStatus_ERROR, message: event, callbackType: .dossier)
-        }
-    }
-    
-//    //MARK: AccountDossiersCaptureDelegate
-//    func setDossierCallbacks(callbackid: String,command: CDVCommandDelegate) {
-//        pluginCallback.resetCallbacks()
-//        pluginCallback.dossierCallbackID = command
-//        self.dosierCallbackId = callbackid
-//        self.command = command
-//    }
-    
-    func didCaptureDocuments(_ documents: [Document]) {
-        print("⭐️ Images Captured!")
-        var docs: Array<Dictionary<String,String>> = Array<Dictionary<String,String>>()
-        for doc in documents {
-            var docJSON:Dictionary<String,String> = Dictionary<String,String>()
-            docJSON["image"] = doc.file
-            docJSON["type"] = doc.type!.rawValue
-            docs.append(docJSON)
-        }
-        if let data = try? JSONSerialization.data(withJSONObject: docs, options: .prettyPrinted) {
-            if let docsJson = String(data: data, encoding: String.Encoding.utf8) {
-                sendPluginResult(status: CDVCommandStatus_OK, message: docsJson, callbackType: .dossier)
-            } else {
-                sendPluginResult(status: CDVCommandStatus_ERROR, message: "Error: Could not create the json object from data", callbackType: .dossier)
-            }
-        } else {
-            sendPluginResult(status: CDVCommandStatus_ERROR, message: "Error: Could not serialize docs Array to json", callbackType: .dossier)
-        }
-    }
-    
-    //MARK: CheckDepositsCaptureDelegate
-    func didCaptureCheck(frontImage: String, backImage: String) {
-        let images: [String] = [frontImage, backImage]
-        if let data = try? JSONSerialization.data(withJSONObject: images, options: .prettyPrinted) {
-            if let imagesJson = String(data: data, encoding: String.Encoding.utf8) {
-                sendPluginResult(status: CDVCommandStatus_OK, message: imagesJson, callbackType: .check)
-            } else {
-                sendPluginResult(status: CDVCommandStatus_ERROR, message: "Error: Could not create the json object from data", callbackType: .check)
-            }
-        } else {
-            sendPluginResult(status: CDVCommandStatus_ERROR, message: "Error: Could not serialize images Array to json", callbackType: .check)
-        }
-    }
-    
+        
     func sendPluginResult(status: CDVCommandStatus, message: String, callbackType: CallbackType, callbackID: String = "" ) {
         var pluginResult = CDVPluginResult(status: status, messageAs: message)
         if callbackType == .dossier {
