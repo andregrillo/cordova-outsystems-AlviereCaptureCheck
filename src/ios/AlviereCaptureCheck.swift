@@ -4,6 +4,7 @@
 //
 //  Created by Luis Bouça on 31/05/2022.
 //  Refactored by André Grillo on 23/01/2023
+//  Refactored by André Grillo on 24/04/2025
 
 import Foundation
 import AlCore
@@ -17,7 +18,34 @@ import SwiftUI
 class AlviereCaptureCheck: CDVPlugin {
     var pluginCallback = PluginCallback()
     
-    override func pluginInitialize() {
+    @objc(setEnvironment:)
+    func setEnvironment(command: CDVInvokedUrlCommand) {
+        guard let environmentString = command.arguments.first as? String else {
+            self.commandDelegate.send(
+                CDVPluginResult(status: .error, messageAs: "Missing environment argument"),
+                callbackId: command.callbackId
+            )
+            return
+        }
+
+        Task {
+            if environmentString.lowercased() == "sandbox" {
+                let result = await AlCoreSDK.shared.setEnvironment(.sandbox)
+                print("result sandbox: \(result)")
+            } else {
+                let result = await AlCoreSDK.shared.setEnvironment(.production)
+                print("result production: \(result)")
+            }
+                
+
+//            let success = await AlCoreSDK.shared.setEnvironment(environment)
+
+//            let result = CDVPluginResult(status: true ? .ok : .error)
+//            self.commandDelegate.send(result, callbackId: command.callbackId)
+        }
+    }
+    
+    override func pluginInitialize(){
         pluginCallback = PluginCallback()
         print("⭐️ \(pluginCallback)")
     }
@@ -47,97 +75,134 @@ class AlviereCaptureCheck: CDVPlugin {
         guard let arguments = command.arguments.first as? [String: Any],
               let accountUUID = arguments["accountUUID"] as? String,
               let docTypes = arguments["docTypes"] as? [String],
-              let token = arguments["token"] as? String else {
+              let token = arguments["token"] as? String,
+              let cameraConfigRaw = docTypes.first else {
             sendPluginResult(status: .error, message: "Missing or invalid arguments", callbackType: .dossier)
             return
         }
 
+        print("🪪 Received accountUUID: \(accountUUID)")
+        print("🔑 Received token: \(token)")
+        
+        AlCoreSDK.shared.setAuthToken(token)
+
         let cameraPermission = AVCaptureDevice.authorizationStatus(for: .video)
         if cameraPermission != .authorized {
             AVCaptureDevice.requestAccess(for: .video) { granted in
-                if granted {
-                    DispatchQueue.main.async {
-                        self.captureDossier(command: command)
-                    }
-                } else {
+                if !granted {
                     self.sendPluginResult(status: .error, message: "Camera permission denied", callbackType: .dossier)
                 }
             }
             return
         }
 
-        Task {
+        Task { @MainActor in
             do {
+                print("📸 Getting camera token...")
                 let cameraToken = try await AlCoreSDK.shared.getCameraToken(accountUUID: accountUUID)
+                print("✅ Got camera token:", cameraToken)
 
-                let documentTypes = docTypes.compactMap { DocumentType(rawValue: $0) }
+                let config: AccountsSDK.ALCameraConfiguration
+                switch cameraConfigRaw {
+                case "DRIVER_LICENSE_BACK":
+                    config = .driverLicenseBack
+                case "DRIVER_LICENSE_FRONT":
+                    config = .driverLicenseFront
+                case "ID_DOCUMENT_BACK":
+                    config = .idDocumentBack
+                case "ID_DOCUMENT_FRONT":
+                    config = .idDocumentFront
+                case "INE_BACK":
+                    config = .ineBack
+                case "INE_FRONT":
+                    config = .ineFront
+                case "MC_DOCUMENT_BACK":
+                    config = .matriculaConsularBack
+                case "MC_DOCUMENT_FRONT":
+                    config = .matriculaConsularFront
+                case "PASSPORT":
+                    config = .passport
+                case "PROOF_OF_ADDRESS":
+                    config = .proofOfAddress
+                case "PROOF_OF_FUNDS":
+                    config = .proofOfFunds
+                case "SELFIE":
+                    config = .selfie
+                default:
+                    sendPluginResult(status: .error, message: "Invalid document type: \(cameraConfigRaw)", callbackType: .dossier)
+                    return
+                }
 
-                let uploadRequest: AccountDossierUploadRequest = .create(
-                    accountUuid: accountUUID,
-                    isPrimary: true,
-                    externalId: UUID().uuidString,
-                    realTimeVerification: false
-                )
-
-                let uploadView = await AlAccounts.userInterface.createDossierUploadView(
-                    token: token,
+                let captureView = AlAccounts.userInterface.createCaptureDocumentView(
                     cameraToken: cameraToken,
-                    documentTypes: documentTypes,
-                    data: uploadRequest,
-                    overlay: nil,
-                    loading: nil,
-                    failure: nil
+                    cameraConfig: config,
+                    overlay: nil
                 ) { result in
                     switch result {
-                    case .success(let dossier):
-                        if let jsonData = try? JSONEncoder().encode(dossier),
+                    case .success(let captureData):
+                        let resultDict: [String: Any] = [
+                            "image": captureData.image
+                        ]
+                        if let jsonData = try? JSONSerialization.data(withJSONObject: resultDict, options: []),
                            let jsonString = String(data: jsonData, encoding: .utf8) {
                             self.sendPluginResult(status: .ok, message: jsonString, callbackType: .dossier)
                         } else {
-                            self.sendPluginResult(status: .error, message: "Failed to encode result", callbackType: .dossier)
+                            self.sendPluginResult(status: .error, message: "Failed to serialize capture data", callbackType: .dossier)
                         }
+
                     case .failure(let error):
-                        self.sendPluginResult(status: .error, message: error.localizedDescription, callbackType: .dossier)
+                        self.sendPluginResult(status: .error, message: "Error: \(error.localizedDescription)", callbackType: .dossier)
+
+                    @unknown default:
+                        self.sendPluginResult(status: .error, message: "Unknown result state", callbackType: .dossier)
                     }
                 }
 
-                let hostingController = UIHostingController(rootView: uploadView)
+                let hostingController = UIHostingController(rootView: captureView)
                 self.viewController.present(hostingController, animated: true, completion: nil)
 
             } catch {
-                sendPluginResult(status: .error, message: "Exception: \(error.localizedDescription)", callbackType: .dossier)
+                print("❌ Failed to get camera token: \(error.localizedDescription)")
+                self.sendPluginResult(status: .error, message: "Exception: \(error.localizedDescription)", callbackType: .dossier)
             }
         }
     }
     
     @objc(captureCheck:)
-    func captureCheck(command: CDVInvokedUrlCommand) {
-        guard let accountUUID = command.arguments.first as? String else {
-            sendPluginResult(status: .error, message: "Missing or invalid accountUUID", callbackType: .check)
+    func captureCheck(command: CDVInvokedUrlCommand){
+        guard let accountUUID = command.arguments[0] as? String,
+        let token = command.arguments[1] as? String else {
+            sendPluginResult(status: .error, message: "Invalid accountUUID or token", callbackType: .check)
             return
         }
-
+        print("🪪 Received accountUUID: \(accountUUID)")
+        print("🔑 Received token: \(token)")
+        
+        AlCoreSDK.shared.setAuthToken(token)
+        
         let cameraPermission = AVCaptureDevice.authorizationStatus(for: .video)
         if cameraPermission != .authorized {
             AVCaptureDevice.requestAccess(for: .video) { granted in
                 if !granted {
                     self.sendPluginResult(status: .error, message: "Camera permission denied", callbackType: .check)
-                } else {
-                    DispatchQueue.main.async {
-                        self.captureCheck(command: command) // Retry
-                    }
-                }
+                } //else {
+//                    DispatchQueue.main.async {
+//                        self.captureCheck(command: command) // Retry
+//                    }
+//                }
             }
             return
         }
-
-        Task {
+        
+        Task { @MainActor in
             do {
+                print("📸 Getting camera token...")
                 let cameraToken = try await AlCoreSDK.shared.getCameraToken(accountUUID: accountUUID)
-
-                let config = await ALCameraConfiguration.checkFront
-
-                let captureView = await AlPayments.userInterface.createCaptureCheckView(
+                print("✅ Got camera token:", cameraToken)
+                
+                let config = ALCameraConfiguration.checkFront
+                
+                let captureView = AlPayments.userInterface.createCaptureCheckView(
                     cameraToken: cameraToken,
                     cameraConfig: config,
                     overlay: nil
@@ -145,7 +210,6 @@ class AlviereCaptureCheck: CDVPlugin {
                     switch result {
                     case .success(let checkData):
                         let resultDict: [String: Any] = [
-                            "barcode": checkData.barcode,
                             "image": checkData.image
                         ]
                         if let jsonData = try? JSONSerialization.data(withJSONObject: resultDict, options: []),
@@ -154,20 +218,47 @@ class AlviereCaptureCheck: CDVPlugin {
                         } else {
                             self.sendPluginResult(status: .error, message: "Failed to serialize check data", callbackType: .check)
                         }
-
+                        
                     case .failure(let error):
                         self.sendPluginResult(status: .error, message: "Error: \(error.localizedDescription)", callbackType: .check)
-
+                        
                     @unknown default:
                         self.sendPluginResult(status: .error, message: "Unknown result state", callbackType: .check)
                     }
                 }
-
-                let hostingController = await UIHostingController(rootView: captureView)
-                await self.viewController.present(hostingController, animated: true, completion: nil)
-
+                
+                let hostingController = UIHostingController(rootView: captureView)
+                self.viewController.present(hostingController, animated: true, completion: nil)
+                
             } catch {
-                sendPluginResult(status: .error, message: "Exception: \(error.localizedDescription)", callbackType: .check)
+                print("❌ Failed to get camera token: \(error.localizedDescription)")
+                self.sendPluginResult(status: .error, message: "Exception: \(error.localizedDescription)", callbackType: .check)
+            }
+        }
+    }
+    
+    @objc(checkPermission:)
+    func checkPermission(command: CDVInvokedUrlCommand) {
+        if AVCaptureDevice.authorizationStatus(for: AVMediaType.video) ==  AVAuthorizationStatus.authorized {
+            // Already Authorized
+            commandDelegate.send(CDVPluginResult(status: .ok, messageAs: true), callbackId: command.callbackId)
+        } else {
+            commandDelegate.send(CDVPluginResult(status: .ok, messageAs: false), callbackId: command.callbackId)
+        }
+    }
+    
+    @objc(requestPermission:)
+    func requestPermission(command: CDVInvokedUrlCommand) {
+        if AVCaptureDevice.authorizationStatus(for: .video) == .authorized {
+            // Already Authorized
+            commandDelegate.send(CDVPluginResult(status: .ok, messageAs: true), callbackId: command.callbackId)
+        } else {
+            AVCaptureDevice.requestAccess(for: .video) { granted in
+                if granted {
+                    self.commandDelegate.send(CDVPluginResult(status: .ok, messageAs: true), callbackId: command.callbackId)
+                } else {
+                    self.commandDelegate.send(CDVPluginResult(status: .ok, messageAs: false), callbackId: command.callbackId)
+                }
             }
         }
     }
@@ -210,4 +301,3 @@ enum CallbackType {
     case dossier
     case other
 }
-
