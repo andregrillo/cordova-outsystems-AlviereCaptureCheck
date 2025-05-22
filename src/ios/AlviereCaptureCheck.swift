@@ -140,21 +140,33 @@ class AlviereCaptureCheck: CDVPlugin {
                 ) { result in
                     switch result {
                     case .success(let captureData):
-                        let resultDict: [String: Any] = [
-                            "image": captureData.image
-                        ]
-                        if let jsonData = try? JSONSerialization.data(withJSONObject: resultDict, options: []),
-                           let jsonString = String(data: jsonData, encoding: .utf8) {
-                            self.sendPluginResult(status: .ok, message: jsonString, callbackType: .dossier)
-                        } else {
-                            self.sendPluginResult(status: .error, message: "Failed to serialize capture data", callbackType: .dossier)
+                        DispatchQueue.main.async {
+                            self.viewController.dismiss(animated: true) {
+                                let resultDict: [String: Any] = [
+                                    "image": captureData.image
+                                ]
+                                if let jsonData = try? JSONSerialization.data(withJSONObject: resultDict, options: []),
+                                   let jsonString = String(data: jsonData, encoding: .utf8) {
+                                    self.sendPluginResult(status: .ok, message: jsonString, callbackType: .dossier)
+                                } else {
+                                    self.sendPluginResult(status: .error, message: "Failed to serialize capture data", callbackType: .dossier)
+                                }
+                            }
                         }
 
                     case .failure(let error):
-                        self.sendPluginResult(status: .error, message: "Error: \(error.localizedDescription)", callbackType: .dossier)
+                        DispatchQueue.main.async {
+                            self.viewController.dismiss(animated: true) {
+                                 self.sendPluginResult(status: .error, message: "Error: \(error.localizedDescription)", callbackType: .dossier)       
+                            }
+                        }
 
                     @unknown default:
-                        self.sendPluginResult(status: .error, message: "Unknown result state", callbackType: .dossier)
+                        DispatchQueue.main.async {
+                            self.viewController.dismiss(animated: true) {
+                                 self.sendPluginResult(status: .error, message: "Unknown result state", callbackType: .dossier)                         
+                            }
+                        }
                     }
                 }
 
@@ -209,21 +221,33 @@ class AlviereCaptureCheck: CDVPlugin {
                 ) { result in
                     switch result {
                     case .success(let checkData):
-                        let resultDict: [String: Any] = [
-                            "image": checkData.image
-                        ]
-                        if let jsonData = try? JSONSerialization.data(withJSONObject: resultDict, options: []),
-                           let jsonString = String(data: jsonData, encoding: .utf8) {
-                            self.sendPluginResult(status: .ok, message: jsonString, callbackType: .check)
-                        } else {
-                            self.sendPluginResult(status: .error, message: "Failed to serialize check data", callbackType: .check)
+                        DispatchQueue.main.async {
+                            self.viewController.dismiss(animated: true) {
+                                let resultDict: [String: Any] = [
+                                    "image": checkData.image
+                                ]
+                                if let jsonData = try? JSONSerialization.data(withJSONObject: resultDict, options: []),
+                                   let jsonString = String(data: jsonData, encoding: .utf8) {
+                                    self.sendPluginResult(status: .ok, message: jsonString, callbackType: .check)
+                                } else {
+                                    self.sendPluginResult(status: .error, message: "Failed to serialize check data", callbackType: .check)
+                                }
+                            }
                         }
                         
                     case .failure(let error):
-                        self.sendPluginResult(status: .error, message: "Error: \(error.localizedDescription)", callbackType: .check)
+                        DispatchQueue.main.async {
+                            self.viewController.dismiss(animated: true) {
+                                self.sendPluginResult(status: .error, message: "Error: \(error.localizedDescription)", callbackType: .check)
+                            }
+                        }
                         
                     @unknown default:
-                        self.sendPluginResult(status: .error, message: "Unknown result state", callbackType: .check)
+                        DispatchQueue.main.async {
+                            self.viewController.dismiss(animated: true) {
+                                self.sendPluginResult(status: .error, message: "Unknown result state", callbackType: .check)
+                            }
+                        }
                     }
                 }
                 
