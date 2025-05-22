@@ -32,22 +32,16 @@ class AlviereCaptureCheck: CDVPlugin {
             if environmentString.lowercased() == "sandbox" {
                 let result = await AlCoreSDK.shared.setEnvironment(.sandbox)
                 print("result sandbox: \(result)")
-                let result = CDVPluginResult(status: .ok, messageAs: "result sandbox: \(result)")
-                self.commandDelegate.send(result, callbackId: command.callbackId)
             } else {
                 let result = await AlCoreSDK.shared.setEnvironment(.production)
                 print("result production: \(result)")
-                let result = CDVPluginResult(status: .ok, messageAs: "result sandbox: \(result)")
-                self.commandDelegate.send(result, callbackId: command.callbackId)
             }
         }
     }
     
     override func pluginInitialize(){
         pluginCallback = PluginCallback()
-        print("\(pluginCallback)")
-        let result = CDVPluginResult(status: .ok)
-        self.commandDelegate.send(result, callbackId: command.callbackId)
+        print("⭐️ \(pluginCallback)")
     }
         
     @objc(hideNavigationBar:)
