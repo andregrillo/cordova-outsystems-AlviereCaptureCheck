@@ -1,6 +1,5 @@
 //
 //  AlviereCaptureCheck.swift
-//  HelloCordova
 //
 //  Created by Luis Bouça on 31/05/2022.
 //  Refactored by André Grillo on 23/01/2023
@@ -31,9 +30,17 @@ class AlviereCaptureCheck: CDVPlugin {
         Task {
             if environmentString.lowercased() == "sandbox" {
                 let result = await AlCoreSDK.shared.setEnvironment(.sandbox)
+                self.commandDelegate.send(
+                    CDVPluginResult(status: .ok),
+                    callbackId: command.callbackId
+                )
                 print("result sandbox: \(result)")
             } else {
                 let result = await AlCoreSDK.shared.setEnvironment(.production)
+                self.commandDelegate.send(
+                    CDVPluginResult(status: .ok),
+                    callbackId: command.callbackId
+                )
                 print("result production: \(result)")
             }
         }
