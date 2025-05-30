@@ -17,8 +17,6 @@ import SwiftUI
 @objc(AlviereCaptureCheck)
 class AlviereCaptureCheck: CDVPlugin {
     var pluginCallback = PluginCallback()
-    /// Holds the two check images as base64 strings.
-    private var capturedCheckImages = [String]()
     
     @objc(setEnvironment:)
     func setEnvironment(command: CDVInvokedUrlCommand) {
@@ -161,14 +159,14 @@ class AlviereCaptureCheck: CDVPlugin {
                     case .failure(let error):
                         DispatchQueue.main.async {
                             self.viewController.dismiss(animated: true) {
-                                 self.sendPluginResult(status: .error, message: "Error: \(error.localizedDescription)", callbackType: .dossier)
+                                 self.sendPluginResult(status: .error, message: "Error: \(error.localizedDescription)", callbackType: .dossier)       
                             }
                         }
 
                     @unknown default:
                         DispatchQueue.main.async {
                             self.viewController.dismiss(animated: true) {
-                                 self.sendPluginResult(status: .error, message: "Unknown result state", callbackType: .dossier)
+                                 self.sendPluginResult(status: .error, message: "Unknown result state", callbackType: .dossier)                         
                             }
                         }
                     }
@@ -201,13 +199,14 @@ class AlviereCaptureCheck: CDVPlugin {
             AVCaptureDevice.requestAccess(for: .video) { granted in
                 if !granted {
                     self.sendPluginResult(status: .error, message: "Camera permission denied", callbackType: .check)
-                }
+                } //else {
+//                    DispatchQueue.main.async {
+//                        self.captureCheck(command: command) // Retry
+//                    }
+//                }
             }
             return
         }
-        
-        // reset buffer for front/back images
-        capturedCheckImages.removeAll()
         
         Task { @MainActor in
             do {
@@ -215,47 +214,40 @@ class AlviereCaptureCheck: CDVPlugin {
                 let cameraToken = try await AlCoreSDK.shared.getCameraToken(accountUUID: accountUUID)
                 print("✅ Got camera token:", cameraToken)
                 
-                let config = ALCameraConfiguration.checkFront
+                var config = ALCameraConfiguration.checkFront
                 
                 let captureView = AlPayments.userInterface.createCaptureCheckView(
                     cameraToken: cameraToken,
                     cameraConfig: config,
                     overlay: nil
-                ) { [weak self] result in
-                    Task { @MainActor in
-                        guard let self = self else { return }
-                        switch result {
-                        case .success(let checkData):
-                            self.capturedCheckImages.append(checkData.image)
-                            if self.capturedCheckImages.count == 2 {
-                                self.viewController.dismiss(animated: true) {
-                                    let resultDict: [String: Any] = [
-                                        "frontImage": self.capturedCheckImages[0],
-                                        "backImage": self.capturedCheckImages[1]
-                                    ]
-                                    if let jsonData = try? JSONSerialization.data(withJSONObject: resultDict, options: []),
-                                       let jsonString = String(data: jsonData, encoding: .utf8) {
-                                        self.sendPluginResult(status: .ok,
-                                                              message: jsonString,
-                                                              callbackType: .check)
-                                    } else {
-                                        self.sendPluginResult(status: .error,
-                                                              message: "Failed to serialize check data",
-                                                              callbackType: .check)
-                                    }
+                ) { result in
+                    switch result {
+                    case .success(let checkData):
+                        DispatchQueue.main.async {
+                            self.viewController.dismiss(animated: true) {
+                                let resultDict: [String: Any] = [
+                                    "image": checkData.image
+                                ]
+                                if let jsonData = try? JSONSerialization.data(withJSONObject: resultDict, options: []),
+                                   let jsonString = String(data: jsonData, encoding: .utf8) {
+                                    self.sendPluginResult(status: .ok, message: jsonString, callbackType: .check)
+                                } else {
+                                    self.sendPluginResult(status: .error, message: "Failed to serialize check data", callbackType: .check)
                                 }
                             }
-                        case .failure(let error):
+                        }
+                        
+                    case .failure(let error):
+                        DispatchQueue.main.async {
                             self.viewController.dismiss(animated: true) {
-                                self.sendPluginResult(status: .error,
-                                                      message: "Error: \(error.localizedDescription)",
-                                                      callbackType: .check)
+                                self.sendPluginResult(status: .error, message: "Error: \(error.localizedDescription)", callbackType: .check)
                             }
-                        @unknown default:
+                        }
+                        
+                    @unknown default:
+                        DispatchQueue.main.async {
                             self.viewController.dismiss(animated: true) {
-                                self.sendPluginResult(status: .error,
-                                                      message: "Unknown result state",
-                                                      callbackType: .check)
+                                self.sendPluginResult(status: .error, message: "Unknown result state", callbackType: .check)
                             }
                         }
                     }
