@@ -139,11 +139,13 @@ class AlviereCaptureCheck: CDVPlugin {
                     cameraToken: cameraToken,
                     cameraConfig: config,
                     overlay: nil
-                ) { result in
-                    switch result {
-                    case .success(let captureData):
-                        DispatchQueue.main.async {
-                            self.viewController.dismiss(animated: true) {
+                ) { [weak self] result in
+                    guard let self = self else { return }
+                    Task { @MainActor in
+                        switch result {
+                        case .success(let captureData):
+                            self.viewController.dismiss(animated: true) { [weak self] in
+                                guard let self = self else { return }
                                 let resultDict: [String: Any] = [
                                     "image": captureData.image
                                 ]
@@ -154,19 +156,17 @@ class AlviereCaptureCheck: CDVPlugin {
                                     self.sendPluginResult(status: .error, message: "Failed to serialize capture data", callbackType: .dossier)
                                 }
                             }
-                        }
 
-                    case .failure(let error):
-                        DispatchQueue.main.async {
-                            self.viewController.dismiss(animated: true) {
-                                 self.sendPluginResult(status: .error, message: "Error: \(error.localizedDescription)", callbackType: .dossier)       
+                        case .failure(let error):
+                            self.viewController.dismiss(animated: true) { [weak self] in
+                                guard let self = self else { return }
+                                self.sendPluginResult(status: .error, message: "Error: \(error.localizedDescription)", callbackType: .dossier)
                             }
-                        }
 
-                    @unknown default:
-                        DispatchQueue.main.async {
-                            self.viewController.dismiss(animated: true) {
-                                 self.sendPluginResult(status: .error, message: "Unknown result state", callbackType: .dossier)                         
+                        @unknown default:
+                            self.viewController.dismiss(animated: true) { [weak self] in
+                                guard let self = self else { return }
+                                self.sendPluginResult(status: .error, message: "Unknown result state", callbackType: .dossier)
                             }
                         }
                     }
@@ -213,49 +213,69 @@ class AlviereCaptureCheck: CDVPlugin {
                 print("📸 Getting camera token...")
                 let cameraToken = try await AlCoreSDK.shared.getCameraToken(accountUUID: accountUUID)
                 print("✅ Got camera token:", cameraToken)
-                
-                var config = ALCameraConfiguration.checkFront
-                
-                let captureView = AlPayments.userInterface.createCaptureCheckView(
-                    cameraToken: cameraToken,
-                    cameraConfig: config,
-                    overlay: nil
-                ) { result in
-                    switch result {
-                    case .success(let checkData):
-                        DispatchQueue.main.async {
-                            self.viewController.dismiss(animated: true) {
-                                let resultDict: [String: Any] = [
-                                    "image": checkData.image
-                                ]
-                                if let jsonData = try? JSONSerialization.data(withJSONObject: resultDict, options: []),
-                                   let jsonString = String(data: jsonData, encoding: .utf8) {
-                                    self.sendPluginResult(status: .ok, message: jsonString, callbackType: .check)
+
+                // store front image and orchestrate front/back capture
+                var frontImageBase64: String?
+                @MainActor func showCapture(isFront: Bool) {
+                    let config = isFront
+                        ? PaymentsSDK.ALCameraConfiguration.checkFront
+                        : PaymentsSDK.ALCameraConfiguration.checkBack
+                    let captureView = AlPayments.userInterface.createCaptureCheckView(
+                        cameraToken: cameraToken,
+                        cameraConfig: config,
+                        overlay: nil
+                    ) { [weak self] result in
+                        guard let self = self else { return }
+                        Task { @MainActor in
+                            switch result {
+                            case .success(let checkData):
+                                if isFront {
+                                    frontImageBase64 = checkData.image
+                                    self.viewController.dismiss(animated: true) { [weak self] in
+                                        guard let self = self else { return }
+                                        showCapture(isFront: false)
+                                    }
                                 } else {
-                                    self.sendPluginResult(status: .error, message: "Failed to serialize check data", callbackType: .check)
+                                    let backImageBase64 = checkData.image
+                                    self.viewController.dismiss(animated: true) { [weak self] in
+                                        guard let self = self else { return }
+                                        let resultDict: [String: Any] = [
+                                            "frontImage": frontImageBase64 ?? "",
+                                            "backImage": backImageBase64
+                                        ]
+                                        if let jsonData = try? JSONSerialization.data(withJSONObject: resultDict, options: []),
+                                           let jsonString = String(data: jsonData, encoding: .utf8) {
+                                            self.sendPluginResult(status: .ok,
+                                                                  message: jsonString,
+                                                                  callbackType: .check)
+                                        } else {
+                                            self.sendPluginResult(status: .error,
+                                                                  message: "Failed to serialize check data",
+                                                                  callbackType: .check)
+                                        }
+                                    }
+                                }
+                            case .failure(let error):
+                                self.viewController.dismiss(animated: true) { [weak self] in
+                                    guard let self = self else { return }
+                                    self.sendPluginResult(status: .error,
+                                                          message: "Error: \(error.localizedDescription)",
+                                                          callbackType: .check)
+                                }
+                            @unknown default:
+                                self.viewController.dismiss(animated: true) { [weak self] in
+                                    guard let self = self else { return }
+                                    self.sendPluginResult(status: .error,
+                                                          message: "Unknown result state",
+                                                          callbackType: .check)
                                 }
                             }
                         }
-                        
-                    case .failure(let error):
-                        DispatchQueue.main.async {
-                            self.viewController.dismiss(animated: true) {
-                                self.sendPluginResult(status: .error, message: "Error: \(error.localizedDescription)", callbackType: .check)
-                            }
-                        }
-                        
-                    @unknown default:
-                        DispatchQueue.main.async {
-                            self.viewController.dismiss(animated: true) {
-                                self.sendPluginResult(status: .error, message: "Unknown result state", callbackType: .check)
-                            }
-                        }
                     }
+                    let hostingController = UIHostingController(rootView: captureView)
+                    self.viewController.present(hostingController, animated: true, completion: nil)
                 }
-                
-                let hostingController = UIHostingController(rootView: captureView)
-                self.viewController.present(hostingController, animated: true, completion: nil)
-                
+                showCapture(isFront: true)
             } catch {
                 print("❌ Failed to get camera token: \(error.localizedDescription)")
                 self.sendPluginResult(status: .error, message: "Exception: \(error.localizedDescription)", callbackType: .check)
