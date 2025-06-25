@@ -55,6 +55,7 @@
        <!--<hook type="after_plugin_install" src="hooks/android/ReplaceAppid.js" /> -->
        <!--<hook type="after_plugin_install" src="hooks/android/MainAppAdder.js" />--> 
         <hook type="after_prepare" src="hooks/android/localizationAdder.js" />
+        <hook typ="before_prepare" src="hooks/android/change_kotlin_language.js"/>
 
         <config-file target="res/xml/config.xml" parent="/*">
 			<preference name="GradlePluginKotlinVersion" value="2.2.0" />
