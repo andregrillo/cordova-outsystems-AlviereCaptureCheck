@@ -46,6 +46,8 @@
 
     <platform name="android">
 
+        <preference name="GradlePluginKotlinVersion" value="2.2.0" />
+
         <config-file parent="/*" target="res/xml/config.xml">
             <feature name="AlviereCaptureCheck">
                 <param name="android-package" value="com.outsystems.alvierecapturecheck.AlviereCaptureCheck" />
