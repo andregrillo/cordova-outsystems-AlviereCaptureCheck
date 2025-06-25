@@ -54,7 +54,7 @@
 
         <hook type="after_plugin_install" src="hooks/android/add_compose_classpath.js" />
        <!--<hook type="after_plugin_install" src="hooks/android/ReplaceAppid.js" /> -->
-        <hook type="after_plugin_install" src="hooks/android/MainAppAdder.js" />
+       <!--<hook type="after_plugin_install" src="hooks/android/MainAppAdder.js" />--> 
         <hook type="after_prepare" src="hooks/android/localizationAdder.js" />
 
         <config-file target="res/xml/config.xml" parent="/*">

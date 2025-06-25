@@ -6,6 +6,8 @@ import com.alviere.android.accounts.AccountsSdk
 import com.alviere.android.accounts.sdk.callback.DocumentCaptureSdkCallback
 import com.alviere.android.accounts.sdk.model.client.response.DocumentCaptureDetailsModel
 import com.alviere.android.accounts.sdk.model.common.DocumentTypeModel
+import com.alviere.android.alcore.env.EnvironmentOption
+import com.alviere.android.alcore.init.Alviere
 import com.alviere.android.alcore.network.token.CameraTokenRequest
 import com.alviere.android.alcore.network.token.TokenRepository
 import com.alviere.android.payments.PaymentsSdk
@@ -31,6 +33,18 @@ class AlviereCaptureCheck : CordovaPlugin() {
     private var captureDosierCallback: CallbackContext? = null
     private val tokenRepository = TokenRepository()
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO)
+
+    override fun pluginInitialize() {
+        super.pluginInitialize()
+
+        val env = if (isDebug()) {
+            EnvironmentOption.SND
+        } else {
+            EnvironmentOption.PRD
+        }
+
+        Alviere.init(cordova.context, env)
+    }
 
     @Throws(JSONException::class)
     override fun execute(
@@ -249,6 +263,16 @@ class AlviereCaptureCheck : CordovaPlugin() {
             callback!!.sendPluginResult(PluginResult(PluginResult.Status.OK, true))
         } else {
             cordova.requestPermissions(this, 10001, arrayOf<String>(Manifest.permission.CAMERA))
+        }
+    }
+
+    private fun isDebug(): Boolean {
+        return try {
+            val clazz = Class.forName("${cordova.activity.packageName}.BuildConfig")
+            val debugField = clazz.getField("DEBUG")
+            debugField.getBoolean(null)
+        } catch (e: Exception) {
+            false // fallback to false if not found
         }
     }
 
