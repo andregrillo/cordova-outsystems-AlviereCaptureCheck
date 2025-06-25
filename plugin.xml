@@ -52,13 +52,35 @@
             </feature>
         </config-file>
 
-        <hook type="after_plugin_install" src="hooks/android/ReplaceAppid.js" />
+        <hook type="after_plugin_install" src="hooks/android/add_compose_classpath.js" />
+       <!--<hook type="after_plugin_install" src="hooks/android/ReplaceAppid.js" /> -->
         <hook type="after_plugin_install" src="hooks/android/MainAppAdder.js" />
         <hook type="after_prepare" src="hooks/android/localizationAdder.js" />
 
-        <config-file parent="/*" target="AndroidManifest.xml"></config-file>
+        <config-file target="res/xml/config.xml" parent="/*">
+			<preference name="GradlePluginKotlinVersion" value="2.2.0" />
+			<preference name="GradlePluginKotlinEnabled" value="true" />
+            <preference name="GradlePluginKotlinCodeStyle" value="official" />
+            <preference name="AndroidXEnabled" value="true"/>
+        </config-file>
 
-        <source-file src="src/android/AlviereCaptureCheck.java" target-dir="src/com/outsystems/alvierecapturecheck" />
+        <!--<source-file src="src/android/AlviereCaptureCheck.java" target-dir="src/com/outsystems/alvierecapturecheck" /> -->
+        <source-file src="src/android/AlviereCaptureCheck.kt" target-dir="app/src/main/kotlin/com/outsystems/alvierecapturecheck/" />
+        <source-file src="src/android/CheckCaptureActivity.kt" target-dir="app/src/main/kotlin/com/outsystems/alvierecapturecheck/" />
+        <source-file src="src/android/DossierCaptureActivity.kt" target-dir="app/src/main/kotlin/com/outsystems/alvierecapturecheck/" />
+
+        <!-- Move Activities to Manifest -->
+		<config-file target="AndroidManifest.xml" parent="/manifest/application">
+        	<activity
+            	android:label="CheckCaptureActivity"
+            	android:name="com.outsystems.alvierecapturecheck.CheckCaptureActivity"
+            	android:theme="@style/Theme.AppCompat.NoActionBar"/>
+
+        	<activity android:label="DossierCaptureActivity" 
+            	android:name="com.outsystems.alvierecapturecheck.DossierCaptureActivity"
+            	android:theme="@style/Theme.AppCompat.NoActionBar"/>
+        </config-file>
+
 
         <framework src="src/android/dependencies.gradle" custom="true" type="gradleReference" />
         <config-file target="AndroidManifest.xml" parent="/manifest">

@@ -4,9 +4,9 @@ import com.alviere.android.alcore.logging.LogLevelOption;
 
 function public void onCreate(Bundle savedInstanceState)
     if (BuildConfig.DEBUG){
-        Alviere.INSTANCE.init(EnvironmentOption.SND, LogLevelOption.VERBOSE);
+        Alviere.INSTANCE.init(this, EnvironmentOption.SND, LogLevelOption.VERBOSE);
     }else {
-        Alviere.INSTANCE.init(EnvironmentOption.PRD, LogLevelOption.NONE);
+        Alviere.INSTANCE.init(this, EnvironmentOption.PRD, LogLevelOption.NONE);
 
     }
 end function
