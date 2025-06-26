@@ -6,6 +6,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material.MaterialTheme
+import android.content.pm.ActivityInfo
 import com.alviere.android.accounts.sdk.model.common.DocumentTypeModel
 import com.alviere.android.accounts.ui.client.DocumentCaptureScreen
 
@@ -13,21 +14,27 @@ class DossierCaptureActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // lock this screen to portrait
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         setContent {
             val cameraToken = intent.extras?.getString(CAMERA_TOKEN) ?: ""
+
+            // Retrieve the list of document type names from the Intent
+            val docTypeNames = intent.getStringArrayListExtra(EXTRA_DOC_TYPES) ?: arrayListOf()
+
+            // Convert each name into the corresponding SDK enum
+            val documentsToCapture = docTypeNames.map { name ->
+                DocumentTypeModel.valueOf(name)
+            }
+
             MaterialTheme {
                 DocumentCaptureScreen(
-                    documentsToCapture = listOf(
-                        DocumentTypeModel.DRIVER_LICENSE_FRONT,
-                        DocumentTypeModel.DRIVER_LICENSE_BACK,
-                        DocumentTypeModel.SELFIE,
-                    ),
+                    documentsToCapture = documentsToCapture,
                     cameraToken = cameraToken,
                     onCloseAction = ::onResultCheck,
                 )
             }
         }
-
     }
 
     private fun onResultCheck() {
@@ -38,8 +45,11 @@ class DossierCaptureActivity : ComponentActivity() {
 
     companion object {
         private const val CAMERA_TOKEN = "CAMERA_TOKEN"
-        fun newInstance(context: Context, cameraToken: String) =
-            Intent(context, DossierCaptureActivity::class.java)
-                .putExtra(CAMERA_TOKEN, cameraToken)
+        private const val EXTRA_DOC_TYPES = "EXTRA_DOC_TYPES"
+        fun newInstance(context: Context, cameraToken: String, docTypes: ArrayList<String>) =
+            Intent(context, DossierCaptureActivity::class.java).apply {
+                putExtra(CAMERA_TOKEN, cameraToken)
+                putStringArrayListExtra(EXTRA_DOC_TYPES, docTypes)
+            }
     }
 }

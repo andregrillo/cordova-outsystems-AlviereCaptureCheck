@@ -1,5 +1,7 @@
 package com.outsystems.alvierecapturecheck
 
+import java.util.ArrayList
+
 import android.Manifest
 import android.os.Build
 import com.alviere.android.accounts.AccountsSdk
@@ -185,6 +187,12 @@ class AlviereCaptureCheck : CordovaPlugin() {
             // (If the SDK needs the accountUUID/token, set them here on AccountsSdk)
             // e.g. AccountsSdk.INSTANCE.setAuth(accountUUID, token);
 
+            // Convert docs JSONArray to ArrayList<String>
+            val docTypesList = ArrayList<String>()
+            for (i in 0 until docs.length()) {
+                docTypesList.add(docs.getString(i))
+            }
+
             scope.launch(Dispatchers.IO) {
                 val tokenResult = tokenRepository.getCameraToken(sessionToken = token, body = CameraTokenRequest(accountUuid = accountUUID))
 
@@ -192,7 +200,13 @@ class AlviereCaptureCheck : CordovaPlugin() {
                     .substringAfter("data=")
                     .substringBefore(")")
 
-                cordova.getActivity().startActivity(DossierCaptureActivity.newInstance(cordova.context, token.toString()))
+                cordova.getActivity().startActivity(
+                    DossierCaptureActivity.newInstance(
+                        cordova.context,
+                        token.toString(),
+                        docTypesList
+                    )
+                )
             }
             isAwaitingResponse = true
             return true
