@@ -1,6 +1,5 @@
 package com.outsystems.alvierecapturecheck
 
-import java.util.ArrayList
 
 import android.Manifest
 import android.os.Build
@@ -75,21 +74,15 @@ class AlviereCaptureCheck : CordovaPlugin() {
             val checkCaptureSdkCallback: CheckCaptureSdkCallback =
                 object : CheckCaptureSdkCallback {
                     override fun onSuccess(checkCapture: List<CheckCaptureDetailsModel>) {
-                        val images = JSONArray()
-
-                        for (captures in checkCapture) {
-                            val doc = JSONObject()
-                            try {
-                                doc.put("image", captures.file)
-                                doc.put("type", captures.documentType.name)
-                                images.put(doc)
-                            } catch (e: JSONException) {
-                                e.printStackTrace()
-                            }
+                        // Build a JSONArray of image strings
+                        val imagesJson = JSONArray()
+                        for (capture in checkCapture) {
+                            imagesJson.put(capture.file)
                         }
-
-                        val result = PluginResult(PluginResult.Status.OK, images)
-                        result.keepCallback = true
+                        // Create PluginResult with the JSONArray
+                        val result = PluginResult(PluginResult.Status.OK, imagesJson)
+                        // Keep the callback for later responses
+                        result.setKeepCallback(true)
                         captureCheckCallback!!.sendPluginResult(result)
                         isAwaitingResponse = false
                     }
