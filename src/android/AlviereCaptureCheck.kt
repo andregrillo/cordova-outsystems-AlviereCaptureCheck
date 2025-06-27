@@ -35,18 +35,6 @@ class AlviereCaptureCheck : CordovaPlugin() {
     private val tokenRepository = TokenRepository()
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO)
 
-    override fun pluginInitialize() {
-        super.pluginInitialize()
-
-        val env = if (isDebug()) {
-            EnvironmentOption.SND
-        } else {
-            EnvironmentOption.PRD
-        }
-
-        Alviere.init(cordova.context, env)
-    }
-
     @Throws(JSONException::class)
     override fun execute(
         action: String,
@@ -227,6 +215,16 @@ class AlviereCaptureCheck : CordovaPlugin() {
                     }
                 }
             })
+            return true
+        } else if (action == "setEnvironment") {
+            val env = if (args.getString(0).lowercase() == "sandbox") {
+                EnvironmentOption.SND
+            } else {
+                EnvironmentOption.PRD
+            }
+            Alviere.init(cordova.context, env)
+            val result = PluginResult(PluginResult.Status.OK)
+            callback!!.sendPluginResult(result)
             return true
         }
         callbackContext.error("Action not mapped!")
